@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: vinkit-backend
+    env: python
+    plan: starter
+    buildCommand: |
+      cd backend
+      pip install -r requirements.txt
+    startCommand: |
+      cd backend
+      uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: REDIS_URL
+        value: redis://localhost:6379
+      - key: DATABASE_URL
+        value: sqlite:///./sql_app.db
+      - key: CORS_ORIGINS
+        value: https://vinkit-frontend.onrender.com
+    healthCheckPath: /health
+
+  - type: web
+    name: vinkit-frontend
+    env: static
+    plan: starter
+    buildCommand: |
+      cd frontend
+      npm install
+      npm run build
+    staticPublishPath: ./frontend/build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://vinkit-backend.onrender.com
+      - key: REACT_APP_WS_URL
+        value: wss://vinkit-backend.onrender.com
+
+  - type: redis
+    name: vinkit-redis
+    plan: starter
