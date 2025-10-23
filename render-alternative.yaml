@@ -38,4 +38,4 @@ services:
   - type: redis
     name: vinkit-redis
     plan: starter
-    ipAllowList: ["0.0.0.0/0"]
+    # Alternative: Remove ipAllowList entirely for Render to use defaults
