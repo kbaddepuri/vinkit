@@ -62,17 +62,35 @@ const VideoChat: React.FC = () => {
     initiatePeerConnection,
   } = useWebRTC(roomId!, uniqueUserId, (message) => signalingRef.current?.(message));
 
-  // Handle WebSocket messages
+  // Create refs to store the latest values to avoid recreating the callback
+  const uniqueUserIdRef = useRef(uniqueUserId);
+  const initiatePeerConnectionRef = useRef(initiatePeerConnection);
+  const handleSignalingMessageRef = useRef(handleSignalingMessage);
+  
+  // Update refs when values change
+  useEffect(() => {
+    uniqueUserIdRef.current = uniqueUserId;
+  }, [uniqueUserId]);
+  
+  useEffect(() => {
+    initiatePeerConnectionRef.current = initiatePeerConnection;
+  }, [initiatePeerConnection]);
+  
+  useEffect(() => {
+    handleSignalingMessageRef.current = handleSignalingMessage;
+  }, [handleSignalingMessage]);
+
+  // Handle WebSocket messages with stable callback
   const handleWebSocketMessage = useCallback((message: any) => {
     console.log('📨 WebSocket message:', message.type, message);
     
     switch (message.type) {
       case 'user_joined':
-        console.log('👤 User joined:', message.user_id, 'My ID:', uniqueUserId);
-        if (message.user_id !== uniqueUserId) {
+        console.log('👤 User joined:', message.user_id, 'My ID:', uniqueUserIdRef.current);
+        if (message.user_id !== uniqueUserIdRef.current) {
           setParticipants(prev => [...prev.filter(p => p !== message.user_id), message.user_id]);
           console.log('🔗 Initiating peer connection with:', message.user_id);
-          initiatePeerConnection(message.user_id);
+          initiatePeerConnectionRef.current(message.user_id);
         }
         break;
         
@@ -86,33 +104,33 @@ const VideoChat: React.FC = () => {
         setParticipants(message.participants);
         // Initiate peer connections with existing participants
         message.participants.forEach((participantId: string) => {
-          if (participantId !== uniqueUserId) {
+          if (participantId !== uniqueUserIdRef.current) {
             console.log('🔗 Initiating peer connection with existing participant:', participantId);
-            initiatePeerConnection(participantId);
+            initiatePeerConnectionRef.current(participantId);
           }
         });
         break;
         
       case 'webrtc_offer':
         console.log('📤 Received WebRTC offer from:', message.from_user);
-        handleSignalingMessage(message);
+        handleSignalingMessageRef.current(message);
         break;
         
       case 'webrtc_answer':
         console.log('📥 Received WebRTC answer from:', message.from_user);
-        handleSignalingMessage(message);
+        handleSignalingMessageRef.current(message);
         break;
         
       case 'ice_candidate':
         console.log('🧊 Received ICE candidate from:', message.from_user);
-        handleSignalingMessage(message);
+        handleSignalingMessageRef.current(message);
         break;
         
       default:
         console.log('❓ Unknown message type:', message.type);
         break;
     }
-  }, [uniqueUserId, initiatePeerConnection, handleSignalingMessage]);
+  }, []); // Empty dependency array - callback is now stable
 
   const { isConnected, sendMessage } = useWebSocket(uniqueUserId, roomId!, handleWebSocketMessage);
 
