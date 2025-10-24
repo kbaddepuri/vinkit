@@ -34,11 +34,16 @@ export const useWebSocket = (
         setIsConnected(true);
         reconnectAttempts.current = 0;
         
-        // Join the room
-        sendMessage({
-          type: 'join_room',
-          room_id: roomId,
-        });
+        // Join the room directly without using sendMessage
+        try {
+          ws.send(JSON.stringify({
+            type: 'join_room',
+            room_id: roomId,
+          }));
+          console.log('📤 Sent join_room message');
+        } catch (error) {
+          console.error('Error sending join_room message:', error);
+        }
       };
 
       ws.onmessage = (event) => {
@@ -98,8 +103,7 @@ export const useWebSocket = (
       console.error('Error creating WebSocket connection:', error);
       toast.error('Failed to connect to chat server');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, roomId, onMessage]);
+  }, [userId, roomId]); // Remove onMessage from dependencies to prevent loops
 
   const sendMessage = useCallback((message: any) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -132,7 +136,7 @@ export const useWebSocket = (
     return () => {
       disconnect();
     };
-  }, [connect, disconnect]);
+  }, [userId, roomId]); // Only depend on userId and roomId, not the functions
 
   // Cleanup on unmount
   useEffect(() => {
