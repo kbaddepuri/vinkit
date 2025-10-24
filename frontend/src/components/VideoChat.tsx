@@ -293,10 +293,12 @@ const VideoChat: React.FC = () => {
           <Fab
             color={isMuted ? 'error' : 'primary'}
             onClick={toggleMute}
-            size={{ xs: 'small', sm: 'medium' }}
+            size="medium"
             sx={{ 
               minWidth: { xs: '48px', sm: '56px' },
-              minHeight: { xs: '48px', sm: '56px' }
+              minHeight: { xs: '48px', sm: '56px' },
+              width: { xs: '48px', sm: '56px' },
+              height: { xs: '48px', sm: '56px' }
             }}
           >
             {isMuted ? <MicOff /> : <Mic />}
@@ -307,10 +309,12 @@ const VideoChat: React.FC = () => {
           <Fab
             color={isVideoOff ? 'error' : 'primary'}
             onClick={toggleVideo}
-            size={{ xs: 'small', sm: 'medium' }}
+            size="medium"
             sx={{ 
               minWidth: { xs: '48px', sm: '56px' },
-              minHeight: { xs: '48px', sm: '56px' }
+              minHeight: { xs: '48px', sm: '56px' },
+              width: { xs: '48px', sm: '56px' },
+              height: { xs: '48px', sm: '56px' }
             }}
           >
             {isVideoOff ? <VideocamOff /> : <Videocam />}
@@ -321,10 +325,12 @@ const VideoChat: React.FC = () => {
           <Fab
             color={isScreenSharing ? 'error' : 'primary'}
             onClick={handleScreenShare}
-            size={{ xs: 'small', sm: 'medium' }}
+            size="medium"
             sx={{ 
               minWidth: { xs: '48px', sm: '56px' },
-              minHeight: { xs: '48px', sm: '56px' }
+              minHeight: { xs: '48px', sm: '56px' },
+              width: { xs: '48px', sm: '56px' },
+              height: { xs: '48px', sm: '56px' }
             }}
           >
             <ScreenShare />
@@ -335,10 +341,12 @@ const VideoChat: React.FC = () => {
           <Fab
             color={showChat ? 'secondary' : 'primary'}
             onClick={() => setShowChat(!showChat)}
-            size={{ xs: 'small', sm: 'medium' }}
+            size="medium"
             sx={{ 
               minWidth: { xs: '48px', sm: '56px' },
-              minHeight: { xs: '48px', sm: '56px' }
+              minHeight: { xs: '48px', sm: '56px' },
+              width: { xs: '48px', sm: '56px' },
+              height: { xs: '48px', sm: '56px' }
             }}
           >
             <Chat />
@@ -349,10 +357,12 @@ const VideoChat: React.FC = () => {
           <Fab
             color="error"
             onClick={handleLeaveCall}
-            size={{ xs: 'small', sm: 'medium' }}
+            size="medium"
             sx={{ 
               minWidth: { xs: '48px', sm: '56px' },
-              minHeight: { xs: '48px', sm: '56px' }
+              minHeight: { xs: '48px', sm: '56px' },
+              width: { xs: '48px', sm: '56px' },
+              height: { xs: '48px', sm: '56px' }
             }}
           >
             <CallEnd />
