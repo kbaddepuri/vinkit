@@ -35,8 +35,8 @@ export const useWebSocket = (
       }
       
       const wsUrl = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
-      console.log('🔌 Connecting to WebSocket:', `${wsUrl}/ws/${userId}`);
-      const ws = new WebSocket(`${wsUrl}/ws/${userId}`);
+      console.log('🔌 Connecting to WebSocket:', `${wsUrl}/ws/${userIdRef.current}`);
+      const ws = new WebSocket(`${wsUrl}/ws/${userIdRef.current}`);
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -49,7 +49,7 @@ export const useWebSocket = (
         try {
           ws.send(JSON.stringify({
             type: 'join_room',
-            room_id: roomId,
+            room_id: roomIdRef.current,
           }));
           console.log('📤 Sent join_room message');
         } catch (error) {
@@ -117,7 +117,7 @@ export const useWebSocket = (
       isConnectingRef.current = false;
       toast.error('Failed to connect to chat server');
     }
-  }, [userId, roomId]); // Keep dependencies minimal
+  }, []); // No dependencies - use refs for latest values
 
   const sendMessage = useCallback((message: any) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -146,13 +146,26 @@ export const useWebSocket = (
     isConnectingRef.current = false;
   }, []);
 
-  // Connect on mount and when userId/roomId change
+  // Connect on mount only - use refs to store latest values
+  const userIdRef = useRef(userId);
+  const roomIdRef = useRef(roomId);
+  
+  // Update refs when values change
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
+  
+  useEffect(() => {
+    roomIdRef.current = roomId;
+  }, [roomId]);
+
+  // Connect only once on mount
   useEffect(() => {
     connect();
     return () => {
       disconnect();
     };
-  }, [userId, roomId]); // Only depend on userId and roomId
+  }, []); // Empty dependency array - connect only once
 
   // Cleanup on unmount
   useEffect(() => {
