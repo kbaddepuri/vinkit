@@ -30,7 +30,9 @@
     "react-confetti": "^6.1.0",
     "react-webcam": "^7.2.0",
     "react-audio-visualize": "^1.0.0",
-    "serve": "^14.2.1"
+    "serve": "^14.2.1",
+    "ajv": "^8.12.0",
+    "ajv-keywords": "^5.1.0"
   },
   "scripts": {
     "start": "react-scripts start",
