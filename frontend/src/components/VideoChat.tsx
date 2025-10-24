@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -44,6 +44,9 @@ const VideoChat: React.FC = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [participants, setParticipants] = useState<string[]>([]);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  
+  // Create a ref to store the signaling function
+  const signalingRef = useRef<(message: any) => void>();
 
   const {
     localStream,
@@ -57,46 +60,72 @@ const VideoChat: React.FC = () => {
     cleanup,
     handleSignalingMessage,
     initiatePeerConnection,
-  } = useWebRTC(roomId!, uniqueUserId);
+  } = useWebRTC(roomId!, uniqueUserId, (message) => signalingRef.current?.(message));
 
   // Handle WebSocket messages
   const handleWebSocketMessage = useCallback((message: any) => {
+    console.log('📨 WebSocket message:', message.type, message);
+    
     switch (message.type) {
       case 'user_joined':
+        console.log('👤 User joined:', message.user_id, 'My ID:', uniqueUserId);
         if (message.user_id !== uniqueUserId) {
           setParticipants(prev => [...prev.filter(p => p !== message.user_id), message.user_id]);
-          // Initiate peer connection with the new user
+          console.log('🔗 Initiating peer connection with:', message.user_id);
           initiatePeerConnection(message.user_id);
         }
         break;
         
       case 'user_left':
+        console.log('👋 User left:', message.user_id);
         setParticipants(prev => prev.filter(p => p !== message.user_id));
         break;
         
       case 'participants':
+        console.log('👥 Participants list:', message.participants);
         setParticipants(message.participants);
         // Initiate peer connections with existing participants
         message.participants.forEach((participantId: string) => {
           if (participantId !== uniqueUserId) {
+            console.log('🔗 Initiating peer connection with existing participant:', participantId);
             initiatePeerConnection(participantId);
           }
         });
         break;
         
       case 'webrtc_offer':
+        console.log('📤 Received WebRTC offer from:', message.from_user);
+        handleSignalingMessage(message);
+        break;
+        
       case 'webrtc_answer':
+        console.log('📥 Received WebRTC answer from:', message.from_user);
+        handleSignalingMessage(message);
+        break;
+        
       case 'ice_candidate':
-        // Forward WebRTC signaling messages
+        console.log('🧊 Received ICE candidate from:', message.from_user);
         handleSignalingMessage(message);
         break;
         
       default:
+        console.log('❓ Unknown message type:', message.type);
         break;
     }
   }, [uniqueUserId, initiatePeerConnection, handleSignalingMessage]);
 
-  const { isConnected } = useWebSocket(uniqueUserId, roomId!, handleWebSocketMessage);
+  const { isConnected, sendMessage } = useWebSocket(uniqueUserId, roomId!, handleWebSocketMessage);
+
+  // Create a function to send WebRTC signaling messages through WebSocket
+  const sendWebRTCSignaling = useCallback((message: any) => {
+    console.log('📤 Sending WebRTC signaling through WebSocket:', message.type, message);
+    sendMessage(message);
+  }, [sendMessage]);
+
+  // Update the signaling ref when the function is available
+  useEffect(() => {
+    signalingRef.current = sendWebRTCSignaling;
+  }, [sendWebRTCSignaling]);
 
   const handleLeaveCall = () => {
     cleanup();

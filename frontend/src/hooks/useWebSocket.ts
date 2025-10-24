@@ -19,7 +19,14 @@ export const useWebSocket = (
 
   const connect = useCallback(() => {
     try {
+      // Close existing connection first
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      
       const wsUrl = process.env.REACT_APP_WS_URL || 'ws://localhost:8000';
+      console.log('🔌 Connecting to WebSocket:', `${wsUrl}/ws/${userId}`);
       const ws = new WebSocket(`${wsUrl}/ws/${userId}`);
       wsRef.current = ws;
 
@@ -37,18 +44,21 @@ export const useWebSocket = (
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
+          console.log('🌐 WebSocket received:', message.type, message);
           
           // Handle different message types
           switch (message.type) {
             case 'webrtc_offer':
             case 'webrtc_answer':
             case 'ice_candidate':
+              console.log('🔄 Forwarding WebRTC message to handler');
               // Forward WebRTC signaling messages
               if (onMessage) {
                 onMessage(message);
               }
               break;
             default:
+              console.log('📨 Forwarding other message to handler');
               if (onMessage) {
                 onMessage(message);
               }
@@ -59,26 +69,29 @@ export const useWebSocket = (
         }
       };
 
-      ws.onclose = () => {
+      ws.onclose = (event) => {
         setIsConnected(false);
-        console.log('WebSocket connection closed');
+        console.log('🔌 WebSocket connection closed:', event.code, event.reason);
         
-        // Attempt to reconnect
-        if (reconnectAttempts.current < maxReconnectAttempts) {
+        // Only attempt to reconnect if it wasn't a manual close
+        if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current++;
           const delay = Math.pow(2, reconnectAttempts.current) * 1000; // Exponential backoff
+          console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current}/${maxReconnectAttempts})`);
+          
           reconnectTimeoutRef.current = setTimeout(() => {
-            console.log(`Attempting to reconnect (${reconnectAttempts.current}/${maxReconnectAttempts})...`);
             connect();
           }, delay);
-        } else {
-          toast.error('Failed to reconnect to chat server');
+        } else if (event.code !== 1000) {
+          console.log('❌ Max reconnection attempts reached');
+          toast.error('Connection lost. Please refresh the page.');
         }
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        toast.error('Connection error');
+        console.error('❌ WebSocket error:', error);
+        setIsConnected(false);
+        toast.error('WebSocket connection error');
       };
 
     } catch (error) {
@@ -91,6 +104,7 @@ export const useWebSocket = (
   const sendMessage = useCallback((message: any) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       try {
+        console.log('📤 Sending WebSocket message:', message.type, message);
         wsRef.current.send(JSON.stringify(message));
       } catch (error) {
         console.error('Error sending WebSocket message:', error);

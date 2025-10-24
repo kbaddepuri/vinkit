@@ -53,11 +53,14 @@ export const useWebRTC = (
 
     // Handle remote stream
     peerConnection.ontrack = (event) => {
+      console.log('🎥 Received remote track from:', targetUserId);
       const [remoteStream] = event.streams;
+      console.log('🎥 Remote stream:', remoteStream);
       setRemoteStreams(prev => ({
         ...prev,
         [targetUserId]: remoteStream,
       }));
+      console.log('✅ Remote stream added for:', targetUserId);
     };
 
     // Handle ICE candidates
@@ -77,8 +80,10 @@ export const useWebRTC = (
   // Handle signaling messages
   const handleSignalingMessage = useCallback(async (message: any) => {
     const { type, from_user, offer, answer, candidate } = message;
+    console.log('🔄 Handling WebRTC signaling:', type, 'from:', from_user);
 
     if (!peerConnections.current[from_user]) {
+      console.log('🆕 Creating new peer connection for:', from_user);
       createPeerConnection(from_user);
     }
 
@@ -87,11 +92,13 @@ export const useWebRTC = (
     switch (type) {
       case 'webrtc_offer':
         try {
+          console.log('📥 Processing WebRTC offer from:', from_user);
           await peerConnection.setRemoteDescription(offer);
           const answer = await peerConnection.createAnswer();
           await peerConnection.setLocalDescription(answer);
           
           if (onSignalingMessage) {
+            console.log('📤 Sending WebRTC answer to:', from_user);
             onSignalingMessage({
               type: 'webrtc_answer',
               target_user: from_user,
@@ -99,45 +106,53 @@ export const useWebRTC = (
             });
           }
         } catch (error) {
-          console.error('Error handling offer:', error);
+          console.error('❌ Error handling offer:', error);
         }
         break;
 
       case 'webrtc_answer':
         try {
+          console.log('📥 Processing WebRTC answer from:', from_user);
           await peerConnection.setRemoteDescription(answer);
         } catch (error) {
-          console.error('Error handling answer:', error);
+          console.error('❌ Error handling answer:', error);
         }
         break;
 
       case 'ice_candidate':
         try {
+          console.log('🧊 Processing ICE candidate from:', from_user);
           await peerConnection.addIceCandidate(candidate);
         } catch (error) {
-          console.error('Error adding ICE candidate:', error);
+          console.error('❌ Error adding ICE candidate:', error);
         }
         break;
 
       default:
-        console.warn('Unknown signaling message type:', type);
+        console.warn('❓ Unknown signaling message type:', type);
         break;
     }
   }, [createPeerConnection, onSignalingMessage]);
 
   // Initiate peer connection with another user
   const initiatePeerConnection = useCallback(async (targetUserId: string) => {
+    console.log('🚀 Initiating peer connection with:', targetUserId);
+    
     if (!localStreamRef.current) {
+      console.log('❌ No local stream available for peer connection');
       return;
     }
 
+    console.log('✅ Local stream available, creating peer connection');
     const peerConnection = createPeerConnection(targetUserId);
     
     try {
+      console.log('📤 Creating WebRTC offer for:', targetUserId);
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
       
       if (onSignalingMessage) {
+        console.log('📤 Sending WebRTC offer to:', targetUserId);
         onSignalingMessage({
           type: 'webrtc_offer',
           target_user: targetUserId,
@@ -145,7 +160,7 @@ export const useWebRTC = (
         });
       }
     } catch (error) {
-      console.error('Error creating offer:', error);
+      console.error('❌ Error creating offer:', error);
     }
   }, [createPeerConnection, onSignalingMessage]);
 
