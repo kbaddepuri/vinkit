@@ -54,9 +54,23 @@ const VideoChat: React.FC = () => {
     startScreenShare,
     stopScreenShare,
     cleanup,
+    handleSignalingMessage,
+    initiatePeerConnection,
   } = useWebRTC(roomId!, user!);
 
-  const { isConnected } = useWebSocket(user!, roomId!);
+  const { isConnected, sendMessage } = useWebSocket(user!, roomId!, handleSignalingMessage);
+
+  // Handle new participants joining
+  useEffect(() => {
+    if (participants.length > 0) {
+      // When new participants join, initiate peer connections
+      participants.forEach(participantId => {
+        if (participantId !== user) {
+          initiatePeerConnection(participantId);
+        }
+      });
+    }
+  }, [participants, user, initiatePeerConnection]);
 
   const handleLeaveCall = () => {
     cleanup();

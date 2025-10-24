@@ -202,6 +202,20 @@ async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
+@app.get("/users", response_model=List[UserResponse])
+async def get_users(db: Session = Depends(get_db), current_user: str = Depends(verify_token)):
+    """Get all users (admin only for now)"""
+    users = db.query(User).filter(User.is_active == True).all()
+    return users
+
+@app.get("/users/me", response_model=UserResponse)
+async def get_current_user(db: Session = Depends(get_db), current_user: str = Depends(verify_token)):
+    """Get current user profile"""
+    user = get_user_by_username(db, current_user)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
 @app.post("/rooms/create")
 async def create_room(user_id: str = Depends(verify_token)):
     room_id = str(uuid.uuid4())

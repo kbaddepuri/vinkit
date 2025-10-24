@@ -12,6 +12,8 @@ interface UseWebRTCReturn {
   stopScreenShare: () => void;
   leaveCall: () => void;
   cleanup: () => void;
+  handleSignalingMessage: (message: any) => Promise<void>;
+  initiatePeerConnection: (targetUserId: string) => Promise<void>;
 }
 
 export const useWebRTC = (
@@ -28,6 +30,122 @@ export const useWebRTC = (
   const localStreamRef = useRef<MediaStream | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
 
+  // ICE servers configuration
+  const iceServers = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+    ],
+  };
+
+  // Create peer connection
+  const createPeerConnection = useCallback((targetUserId: string) => {
+    const peerConnection = new RTCPeerConnection(iceServers);
+    peerConnections.current[targetUserId] = peerConnection;
+
+    // Add local stream tracks
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => {
+        peerConnection.addTrack(track, localStreamRef.current!);
+      });
+    }
+
+    // Handle remote stream
+    peerConnection.ontrack = (event) => {
+      const [remoteStream] = event.streams;
+      setRemoteStreams(prev => ({
+        ...prev,
+        [targetUserId]: remoteStream,
+      }));
+    };
+
+    // Handle ICE candidates
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate && onSignalingMessage) {
+        onSignalingMessage({
+          type: 'ice_candidate',
+          target_user: targetUserId,
+          candidate: event.candidate,
+        });
+      }
+    };
+
+    return peerConnection;
+  }, [onSignalingMessage]);
+
+  // Handle signaling messages
+  const handleSignalingMessage = useCallback(async (message: any) => {
+    const { type, from_user, offer, answer, candidate } = message;
+
+    if (!peerConnections.current[from_user]) {
+      createPeerConnection(from_user);
+    }
+
+    const peerConnection = peerConnections.current[from_user];
+
+    switch (type) {
+      case 'webrtc_offer':
+        try {
+          await peerConnection.setRemoteDescription(offer);
+          const answer = await peerConnection.createAnswer();
+          await peerConnection.setLocalDescription(answer);
+          
+          if (onSignalingMessage) {
+            onSignalingMessage({
+              type: 'webrtc_answer',
+              target_user: from_user,
+              answer: answer,
+            });
+          }
+        } catch (error) {
+          console.error('Error handling offer:', error);
+        }
+        break;
+
+      case 'webrtc_answer':
+        try {
+          await peerConnection.setRemoteDescription(answer);
+        } catch (error) {
+          console.error('Error handling answer:', error);
+        }
+        break;
+
+      case 'ice_candidate':
+        try {
+          await peerConnection.addIceCandidate(candidate);
+        } catch (error) {
+          console.error('Error adding ICE candidate:', error);
+        }
+        break;
+
+      default:
+        console.warn('Unknown signaling message type:', type);
+        break;
+    }
+  }, [createPeerConnection, onSignalingMessage]);
+
+  // Initiate peer connection with another user
+  const initiatePeerConnection = useCallback(async (targetUserId: string) => {
+    if (!localStreamRef.current) return;
+
+    const peerConnection = createPeerConnection(targetUserId);
+    
+    try {
+      const offer = await peerConnection.createOffer();
+      await peerConnection.setLocalDescription(offer);
+      
+      if (onSignalingMessage) {
+        onSignalingMessage({
+          type: 'webrtc_offer',
+          target_user: targetUserId,
+          offer: offer,
+        });
+      }
+    } catch (error) {
+      console.error('Error creating offer:', error);
+    }
+  }, [createPeerConnection, onSignalingMessage]);
 
   const initializeLocalStream = useCallback(async () => {
     try {
@@ -250,9 +368,17 @@ export const useWebRTC = (
   useEffect(() => {
     initializeLocalStream();
     return () => {
-      leaveCall();
+      cleanup();
     };
-  }, [initializeLocalStream, leaveCall]);
+  }, [initializeLocalStream, cleanup]);
+
+  // Handle signaling messages from WebSocket
+  useEffect(() => {
+    if (onSignalingMessage) {
+      // This will be called from the WebSocket hook
+      // The actual message handling is done in handleSignalingMessage
+    }
+  }, [onSignalingMessage]);
 
   // Expose signaling handler
   const cleanup = useCallback(() => {
@@ -304,5 +430,7 @@ export const useWebRTC = (
     stopScreenShare,
     leaveCall,
     cleanup,
+    handleSignalingMessage,
+    initiatePeerConnection,
   };
 };
