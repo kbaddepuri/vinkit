@@ -11,6 +11,11 @@ from typing import Dict, List, Optional
 import os
 from dotenv import load_dotenv
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
+from database import get_db, engine
+from models import Base
+from user_service import authenticate_user, create_user, get_user_by_username, validate_username, validate_email, validate_password
+from schemas import UserCreate, UserResponse, LoginRequest, Token
 
 load_dotenv()
 
@@ -20,10 +25,8 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 
-# Pydantic models
-class LoginRequest(BaseModel):
-    username: str
-    password: str
+# Create database tables
+Base.metadata.create_all(bind=engine)
 
 # Redis connection for distributed architecture
 redis_client = None
@@ -143,16 +146,61 @@ async def root():
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
 
-@app.post("/auth/login")
-async def login(login_data: LoginRequest):
-    # In production, verify against database
-    if login_data.username == "demo" and login_data.password == "demo":
-        access_token = create_access_token(data={"sub": login_data.username})
-        return {"access_token": access_token, "token_type": "bearer"}
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Incorrect username or password"
+@app.post("/auth/register", response_model=UserResponse)
+async def register(user_data: UserCreate, db: Session = Depends(get_db)):
+    # Validate input
+    if not validate_username(user_data.username):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username must be 3-20 characters, alphanumeric and underscores only"
+        )
+    
+    if not validate_email(user_data.email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid email format"
+        )
+    
+    if not validate_password(user_data.password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Password must be at least 8 characters long"
+        )
+    
+    # Check if user already exists
+    if get_user_by_username(db, user_data.username):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already registered"
+        )
+    
+    # Check if email already exists
+    from user_service import get_user_by_email
+    if get_user_by_email(db, user_data.email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    
+    # Create user
+    user = create_user(db, user_data.username, user_data.email, user_data.password)
+    return user
+
+@app.post("/auth/login", response_model=Token)
+async def login(login_data: LoginRequest, db: Session = Depends(get_db)):
+    user = authenticate_user(db, login_data.username, login_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username}, expires_delta=access_token_expires
     )
+    return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/rooms/create")
 async def create_room(user_id: str = Depends(verify_token)):

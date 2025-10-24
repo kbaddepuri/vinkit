@@ -10,10 +10,11 @@ import {
   Container,
   Alert,
   CircularProgress,
+  Link,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useAuthStore } from '../store/authStore';
-import { loginUser } from '../services/api';
+import { loginUser } from '../services/authService';
 import toast from 'react-hot-toast';
 
 const Login: React.FC = () => {
@@ -128,6 +129,23 @@ const Login: React.FC = () => {
 
             <Box textAlign="center" mt={2}>
               <Typography variant="body2" color="text.secondary">
+                Don't have an account?{' '}
+                <Link
+                  component="button"
+                  type="button"
+                  onClick={() => navigate('/register')}
+                  sx={{
+                    color: '#667eea',
+                    textDecoration: 'none',
+                    '&:hover': {
+                      textDecoration: 'underline',
+                    },
+                  }}
+                >
+                  Sign up
+                </Link>
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 Demo credentials: demo / demo
               </Typography>
             </Box>

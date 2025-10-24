@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Box } from '@mui/material';
 import Login from './components/Login';
+import Register from './components/Register';
 import Dashboard from './components/Dashboard';
 import VideoChat from './components/VideoChat';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -18,6 +19,12 @@ const App: React.FC = () => {
             path="/login" 
             element={
               isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
+            } 
+          />
+          <Route 
+            path="/register" 
+            element={
+              isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />
             } 
           />
           <Route 
