@@ -16,8 +16,17 @@ export const useWebSocket = (
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
+  const isConnectingRef = useRef(false);
 
   const connect = useCallback(() => {
+    // Prevent multiple simultaneous connections
+    if (isConnectingRef.current || (wsRef.current && wsRef.current.readyState === WebSocket.OPEN)) {
+      console.log('🔌 WebSocket already connecting or connected, skipping...');
+      return;
+    }
+    
+    isConnectingRef.current = true;
+    
     try {
       // Close existing connection first
       if (wsRef.current) {
@@ -31,8 +40,10 @@ export const useWebSocket = (
       wsRef.current = ws;
 
       ws.onopen = () => {
+        console.log('🔌 WebSocket connected successfully');
         setIsConnected(true);
         reconnectAttempts.current = 0;
+        isConnectingRef.current = false;
         
         // Join the room directly without using sendMessage
         try {
@@ -75,8 +86,9 @@ export const useWebSocket = (
       };
 
       ws.onclose = (event) => {
-        setIsConnected(false);
         console.log('🔌 WebSocket connection closed:', event.code, event.reason);
+        setIsConnected(false);
+        isConnectingRef.current = false;
         
         // Only attempt to reconnect if it wasn't a manual close
         if (event.code !== 1000 && reconnectAttempts.current < maxReconnectAttempts) {
@@ -96,11 +108,13 @@ export const useWebSocket = (
       ws.onerror = (error) => {
         console.error('❌ WebSocket error:', error);
         setIsConnected(false);
+        isConnectingRef.current = false;
         toast.error('WebSocket connection error');
       };
 
     } catch (error) {
       console.error('Error creating WebSocket connection:', error);
+      isConnectingRef.current = false;
       toast.error('Failed to connect to chat server');
     }
   }, [userId, roomId]); // Keep dependencies minimal
@@ -120,6 +134,7 @@ export const useWebSocket = (
   }, []);
 
   const disconnect = useCallback(() => {
+    console.log('🔌 Disconnecting WebSocket...');
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
     }
@@ -128,6 +143,7 @@ export const useWebSocket = (
       wsRef.current = null;
     }
     setIsConnected(false);
+    isConnectingRef.current = false;
   }, []);
 
   // Connect on mount and when userId/roomId change
