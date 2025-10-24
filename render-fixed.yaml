@@ -5,6 +5,7 @@ services:
     plan: starter
     buildCommand: |
       cd backend
+      pip install --upgrade pip
       pip install -r requirements.txt
     startCommand: |
       cd backend
@@ -26,8 +27,9 @@ services:
     plan: starter
     buildCommand: |
       cd frontend
+      rm -rf node_modules package-lock.json
       npm cache clean --force
-      npm install --legacy-peer-deps
+      npm install --legacy-peer-deps --no-optional
       npm run build
     startCommand: |
       cd frontend
@@ -35,11 +37,15 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=4096
       - key: REACT_APP_API_URL
         value: https://vinkit-backend.onrender.com
       - key: REACT_APP_WS_URL
         value: wss://vinkit-backend.onrender.com
       - key: GENERATE_SOURCEMAP
+        value: false
+      - key: CI
         value: false
 
   - type: redis
