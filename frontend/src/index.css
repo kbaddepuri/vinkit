@@ -115,7 +115,7 @@ code {
 }
 
 .video-grid.double {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 2fr 1fr; /* Remote video larger, local smaller */
 }
 
 .video-grid.triple {
@@ -130,6 +130,19 @@ code {
 
 .video-grid.many {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+/* Make local video (last child) smaller */
+.video-grid > div:last-child {
+  max-width: 300px;
+  max-height: 200px;
+  justify-self: end;
+  align-self: end;
+}
+
+/* Ensure remote videos take up most space */
+.video-grid > div:not(:last-child) {
+  min-height: 300px;
 }
 
 /* Responsive design */

@@ -162,13 +162,14 @@ const VideoChat: React.FC = () => {
     setParticipants([user!, ...Object.keys(remoteStreams)]);
   }, [user, remoteStreams]);
 
+  // Put remote streams first (large) and local stream last (small)
   const allStreams = [
-    { id: 'local', stream: localStream, isLocal: true },
     ...Object.entries(remoteStreams).map(([id, stream]) => ({
       id,
       stream,
       isLocal: false,
     })),
+    ...(localStream ? [{ id: 'local', stream: localStream, isLocal: true }] : []),
   ].filter(item => item.stream);
 
   // Debug logging
