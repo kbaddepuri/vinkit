@@ -145,15 +145,85 @@ code {
   min-height: 300px;
 }
 
-/* Responsive design */
+/* Mobile-first responsive design */
 @media (max-width: 768px) {
   .video-grid {
     grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 8px;
   }
   
+  .video-grid.single,
+  .video-grid.double,
   .video-grid.triple,
   .video-grid.quad {
     grid-template-columns: 1fr;
     grid-template-rows: auto;
+  }
+  
+  /* Mobile video container adjustments */
+  .video-container {
+    min-height: 200px;
+    max-height: 50vh;
+    border-radius: 8px;
+  }
+  
+  /* Mobile local video (smaller on mobile) */
+  .video-grid > div:last-child {
+    max-width: 150px;
+    max-height: 120px;
+    position: fixed;
+    bottom: 80px;
+    right: 16px;
+    z-index: 1000;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  }
+  
+  /* Mobile remote videos (full width) */
+  .video-grid > div:not(:last-child) {
+    min-height: 200px;
+    max-height: 50vh;
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+  .video-grid {
+    gap: 4px;
+    padding: 4px;
+  }
+  
+  .video-container {
+    min-height: 150px;
+    max-height: 40vh;
+  }
+  
+  .video-grid > div:last-child {
+    max-width: 120px;
+    max-height: 90px;
+    bottom: 70px;
+    right: 12px;
+  }
+  
+  .video-grid > div:not(:last-child) {
+    min-height: 150px;
+    max-height: 40vh;
+  }
+}
+
+/* Landscape mobile orientation */
+@media (max-width: 768px) and (orientation: landscape) {
+  .video-grid {
+    grid-template-columns: 2fr 1fr;
+    gap: 8px;
+  }
+  
+  .video-grid > div:last-child {
+    position: relative;
+    max-width: 200px;
+    max-height: 150px;
+    bottom: auto;
+    right: auto;
   }
 }
