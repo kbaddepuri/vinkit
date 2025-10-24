@@ -31,15 +31,57 @@ const Login: React.FC = () => {
     setError('');
 
     try {
+      console.log('Attempting login with:', { username, password });
       const response = await loginUser(username, password);
+      console.log('Login successful:', response);
       login(username, response.access_token);
       navigate('/dashboard');
     } catch (err: any) {
+      console.error('Login error:', err);
       const errorMessage = err.response?.data?.detail || err.message || 'Login failed';
       setError(errorMessage);
       toast.error(errorMessage);
+      
+      // If it's a demo user login failure, suggest creating the user
+      if (username === 'demo' && errorMessage.includes('Incorrect username or password')) {
+        setError('Demo user not found. Please register first or use the "Create Demo User" button below.');
+      }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createDemoUser = async () => {
+    setLoading(true);
+    try {
+      console.log('Creating demo user...');
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/test/create-demo-user`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const data = await response.json();
+      console.log('Demo user creation response:', data);
+      toast.success(data.message);
+    } catch (err) {
+      console.error('Demo user creation error:', err);
+      toast.error('Failed to create demo user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testBackendConnection = async () => {
+    try {
+      console.log('Testing backend connection...');
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/health`);
+      const data = await response.json();
+      console.log('Backend health check:', data);
+      toast.success('Backend connection successful!');
+    } catch (err) {
+      console.error('Backend connection error:', err);
+      toast.error('Backend connection failed');
     }
   };
 
@@ -148,6 +190,24 @@ const Login: React.FC = () => {
               <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                 Demo credentials: demo / demo
               </Typography>
+              <Box sx={{ mt: 1, display: 'flex', gap: 1, justifyContent: 'center' }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={createDemoUser}
+                  disabled={loading}
+                >
+                  Create Demo User
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={testBackendConnection}
+                  disabled={loading}
+                >
+                  Test Backend
+                </Button>
+              </Box>
             </Box>
           </CardContent>
         </Card>

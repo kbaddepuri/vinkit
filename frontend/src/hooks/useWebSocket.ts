@@ -37,19 +37,9 @@ export const useWebSocket = (
       ws.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          console.log('WebSocket message received:', message);
           
           // Handle different message types
           switch (message.type) {
-            case 'user_joined':
-              console.log('User joined:', message.user_id);
-              break;
-            case 'user_left':
-              console.log('User left:', message.user_id);
-              break;
-            case 'participants':
-              console.log('Current participants:', message.participants);
-              break;
             case 'webrtc_offer':
             case 'webrtc_answer':
             case 'ice_candidate':
@@ -59,7 +49,6 @@ export const useWebSocket = (
               }
               break;
             default:
-              console.log('Unknown message type:', message.type);
               if (onMessage) {
                 onMessage(message);
               }

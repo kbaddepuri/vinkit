@@ -216,6 +216,18 @@ async def get_current_user(db: Session = Depends(get_db), current_user: str = De
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
+@app.post("/test/create-demo-user")
+async def create_demo_user(db: Session = Depends(get_db)):
+    """Create a demo user for testing"""
+    # Check if demo user already exists
+    existing_user = get_user_by_username(db, "demo")
+    if existing_user:
+        return {"message": "Demo user already exists", "user": existing_user.username}
+    
+    # Create demo user
+    user = create_user(db, "demo", "demo@example.com", "demo")
+    return {"message": "Demo user created", "user": user.username}
+
 @app.post("/rooms/create")
 async def create_room(user_id: str = Depends(verify_token)):
     room_id = str(uuid.uuid4())

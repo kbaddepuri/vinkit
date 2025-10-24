@@ -14,16 +14,20 @@ pwd_context = CryptContext(
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""
-    # First try direct verification
-    if pwd_context.verify(plain_password, hashed_password):
-        return True
-    
-    # If that fails and password is long, try with SHA256 hash
-    if len(plain_password.encode('utf-8')) > 72:
-        password_hash = hashlib.sha256(plain_password.encode('utf-8')).hexdigest()
-        return pwd_context.verify(password_hash, hashed_password)
-    
-    return False
+    try:
+        # Try direct verification first
+        result = pwd_context.verify(plain_password, hashed_password)
+        if result:
+            return True
+        
+        # If that fails and password is long, try with SHA256 hash
+        if len(plain_password.encode('utf-8')) > 72:
+            password_hash = hashlib.sha256(plain_password.encode('utf-8')).hexdigest()
+            return pwd_context.verify(password_hash, hashed_password)
+        
+        return False
+    except Exception as e:
+        return False
 
 def get_password_hash(password: str) -> str:
     """Hash a password with bcrypt."""
@@ -80,6 +84,8 @@ def authenticate_user(db: Session, username: str, password: str) -> Optional[Use
     user = get_user_by_username(db, username)
     if not user:
         return None
-    if not verify_password(password, user.hashed_password):
+    
+    password_valid = verify_password(password, user.hashed_password)
+    if not password_valid:
         return None
     return user

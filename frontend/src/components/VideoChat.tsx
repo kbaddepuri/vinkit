@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -37,7 +37,8 @@ import toast from 'react-hot-toast';
 const VideoChat: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, getUniqueUserId } = useAuthStore();
+  const uniqueUserId = getUniqueUserId();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -56,21 +57,46 @@ const VideoChat: React.FC = () => {
     cleanup,
     handleSignalingMessage,
     initiatePeerConnection,
-  } = useWebRTC(roomId!, user!);
+  } = useWebRTC(roomId!, uniqueUserId);
 
-  const { isConnected } = useWebSocket(user!, roomId!, handleSignalingMessage);
-
-  // Handle new participants joining
-  useEffect(() => {
-    if (participants.length > 0) {
-      // When new participants join, initiate peer connections
-      participants.forEach(participantId => {
-        if (participantId !== user) {
-          initiatePeerConnection(participantId);
+  // Handle WebSocket messages
+  const handleWebSocketMessage = useCallback((message: any) => {
+    switch (message.type) {
+      case 'user_joined':
+        if (message.user_id !== uniqueUserId) {
+          setParticipants(prev => [...prev.filter(p => p !== message.user_id), message.user_id]);
+          // Initiate peer connection with the new user
+          initiatePeerConnection(message.user_id);
         }
-      });
+        break;
+        
+      case 'user_left':
+        setParticipants(prev => prev.filter(p => p !== message.user_id));
+        break;
+        
+      case 'participants':
+        setParticipants(message.participants);
+        // Initiate peer connections with existing participants
+        message.participants.forEach((participantId: string) => {
+          if (participantId !== uniqueUserId) {
+            initiatePeerConnection(participantId);
+          }
+        });
+        break;
+        
+      case 'webrtc_offer':
+      case 'webrtc_answer':
+      case 'ice_candidate':
+        // Forward WebRTC signaling messages
+        handleSignalingMessage(message);
+        break;
+        
+      default:
+        break;
     }
-  }, [participants, user, initiatePeerConnection]);
+  }, [uniqueUserId, initiatePeerConnection, handleSignalingMessage]);
+
+  const { isConnected } = useWebSocket(uniqueUserId, roomId!, handleWebSocketMessage);
 
   const handleLeaveCall = () => {
     cleanup();
@@ -200,6 +226,7 @@ const VideoChat: React.FC = () => {
           </AnimatePresence>
         </Box>
       </Box>
+
 
       {/* Controls */}
       <Box sx={{ 

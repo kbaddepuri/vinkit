@@ -127,7 +127,9 @@ export const useWebRTC = (
 
   // Initiate peer connection with another user
   const initiatePeerConnection = useCallback(async (targetUserId: string) => {
-    if (!localStreamRef.current) return;
+    if (!localStreamRef.current) {
+      return;
+    }
 
     const peerConnection = createPeerConnection(targetUserId);
     
