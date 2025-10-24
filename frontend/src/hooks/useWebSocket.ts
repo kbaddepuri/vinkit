@@ -96,6 +96,7 @@ export const useWebSocket = (
       console.error('Error creating WebSocket connection:', error);
       toast.error('Failed to connect to chat server');
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, roomId, onMessage]);
 
   const sendMessage = useCallback((message: any) => {

@@ -58,7 +58,7 @@ const VideoChat: React.FC = () => {
     initiatePeerConnection,
   } = useWebRTC(roomId!, user!);
 
-  const { isConnected, sendMessage } = useWebSocket(user!, roomId!, handleSignalingMessage);
+  const { isConnected } = useWebSocket(user!, roomId!, handleSignalingMessage);
 
   // Handle new participants joining
   useEffect(() => {

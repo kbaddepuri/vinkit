@@ -58,7 +58,7 @@ const Register: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await registerUser(
+      await registerUser(
         formData.username,
         formData.email,
         formData.password

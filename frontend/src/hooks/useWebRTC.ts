@@ -30,17 +30,17 @@ export const useWebRTC = (
   const localStreamRef = useRef<MediaStream | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
 
-  // ICE servers configuration
-  const iceServers = {
-    iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' },
-      { urls: 'stun:stun2.l.google.com:19302' },
-    ],
-  };
-
   // Create peer connection
   const createPeerConnection = useCallback((targetUserId: string) => {
+    // ICE servers configuration
+    const iceServers = {
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' },
+      ],
+    };
+    
     const peerConnection = new RTCPeerConnection(iceServers);
     peerConnections.current[targetUserId] = peerConnection;
 
@@ -363,23 +363,6 @@ export const useWebRTC = (
     setIsVideoOff(false);
   }, []);
 
-
-  // Initialize local stream on mount
-  useEffect(() => {
-    initializeLocalStream();
-    return () => {
-      cleanup();
-    };
-  }, [initializeLocalStream, cleanup]);
-
-  // Handle signaling messages from WebSocket
-  useEffect(() => {
-    if (onSignalingMessage) {
-      // This will be called from the WebSocket hook
-      // The actual message handling is done in handleSignalingMessage
-    }
-  }, [onSignalingMessage]);
-
   // Expose signaling handler
   const cleanup = useCallback(() => {
     // Stop all local tracks
@@ -406,9 +389,19 @@ export const useWebRTC = (
     setIsVideoOff(false);
   }, []);
 
+  // Initialize local stream on mount
+  useEffect(() => {
+    initializeLocalStream();
+    return () => {
+      cleanup();
+    };
+  }, [initializeLocalStream, cleanup]);
+
+  // Handle signaling messages from WebSocket
   useEffect(() => {
     if (onSignalingMessage) {
-      // This would be called from the WebSocket hook
+      // This will be called from the WebSocket hook
+      // The actual message handling is done in handleSignalingMessage
     }
   }, [onSignalingMessage]);
 
