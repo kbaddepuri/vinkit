@@ -126,6 +126,12 @@ const VideoChat: React.FC = () => {
         handleSignalingMessageRef.current(message);
         break;
         
+      case 'chat_message':
+        console.log('💬 Received chat message from:', message.from_user);
+        // Chat messages are handled by the ChatPanel component
+        // This is just for logging purposes
+        break;
+        
       default:
         console.log('❓ Unknown message type:', message.type);
         break;

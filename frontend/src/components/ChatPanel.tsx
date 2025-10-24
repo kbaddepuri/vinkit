@@ -13,6 +13,8 @@ import {
 } from '@mui/material';
 import { Send, Close } from '@mui/icons-material';
 import { motion } from 'framer-motion';
+import { useWebSocket } from '../hooks/useWebSocket';
+import { useAuthStore } from '../store/authStore';
 
 interface Message {
   id: string;
@@ -30,6 +32,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ roomId, onClose }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuthStore();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -39,8 +42,33 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ roomId, onClose }) => {
     scrollToBottom();
   }, [messages]);
 
+  // Handle WebSocket messages for chat
+  const handleWebSocketMessage = (message: any) => {
+    if (message.type === 'chat_message') {
+      const chatMessage: Message = {
+        id: `${message.from_user}_${Date.now()}`,
+        text: message.text,
+        sender: message.from_user === user ? 'You' : message.from_user,
+        timestamp: new Date(message.timestamp || Date.now()),
+      };
+      setMessages(prev => [...prev, chatMessage]);
+    }
+  };
+
+  // Use WebSocket hook for chat functionality
+  const { sendMessage } = useWebSocket(user || 'anonymous', roomId, handleWebSocketMessage);
+
   const handleSendMessage = () => {
     if (newMessage.trim()) {
+      // Send message via WebSocket
+      sendMessage({
+        type: 'chat_message',
+        room_id: roomId,
+        text: newMessage.trim(),
+        timestamp: new Date().toISOString(),
+      });
+      
+      // Add to local messages immediately for better UX
       const message: Message = {
         id: Date.now().toString(),
         text: newMessage.trim(),
